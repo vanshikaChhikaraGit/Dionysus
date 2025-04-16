@@ -1,3 +1,4 @@
+import { pollCommits } from "@/lib/github";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { z } from "zod";
 
@@ -22,7 +23,7 @@ export const ProjectRouter = createTRPCRouter({
           },
         },
       });
-
+      await pollCommits(project.id);
       return project;
     }),
 
@@ -34,7 +35,7 @@ export const ProjectRouter = createTRPCRouter({
             userId: ctx.user.userId!,
           },
         },
-        deletedAt:null
+        deletedAt: null,
       },
     });
   }),

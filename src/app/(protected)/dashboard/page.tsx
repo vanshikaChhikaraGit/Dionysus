@@ -44,7 +44,7 @@ const Page = (props: Props) => {
     </div>
 
     <div className="mt-8">
-      commit log
+     
     </div>
   </div>
   
