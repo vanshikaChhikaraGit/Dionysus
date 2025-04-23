@@ -2,7 +2,8 @@
 
 Dionysus is a powerful, AI-driven collaboration platform designed to streamline code understanding, documentation, and teamwork for developers.
 
-![image](https://github.com/user-attachments/assets/3acae74c-88d5-4a71-a613-47048ebc2ff0)
+![image](https://github.com/user-attachments/assets/a25364af-cc82-4b90-994b-04b0fd317e69)
+
 
 ---
 
