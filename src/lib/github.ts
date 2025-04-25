@@ -2,6 +2,7 @@ import { db } from "@/server/db";
 import { Octokit } from "octokit";
 import axios from 'axios'
 import { generateCommitSummary } from "./gemini";
+import { error } from "console";
 
 
 const octokit = new Octokit({
@@ -38,46 +39,109 @@ export const getCommitsList = async (github: string): Promise<Response[]> => {
     commitDate: commit.commit?.author?.date ?? "",
   }));
 };
-
 export const pollCommits = async (projectId: string) => {
-  const { project, githubUrl } = await fetchProjectGithubUrl(projectId);
+  try {
+    const { project, githubUrl } = await fetchProjectGithubUrl(projectId);
+    const commitHashes = await getCommitsList(githubUrl);
+    const unprocessedCommits = await getUnprocessedCommits(projectId, commitHashes);
 
-  const commitHashes = await getCommitsList(githubUrl)
- 
-  const unprocessedCommits = await getUnprocessedCommits(projectId,commitHashes)
+    if (unprocessedCommits.length === 0) {
+      return { count: 0, message: "No new commits to process" };
+    }
 
-  const summaryResponses = await Promise.allSettled (unprocessedCommits.map(commit=>{
-    return summariseCommit(commit.commitHash,githubUrl)
-  }))
+    const summaryResponses = await Promise.allSettled(
+      unprocessedCommits.map(commit => 
+        summariseCommit(commit.commitHash, githubUrl)
+      )
+    );
 
-  const summaries = summaryResponses.map((summary)=>{
-  if(summary.status==='fulfilled'){
-    console.log(summary.value as string)
-    return summary.value as string
-  }else{
-    throw new Error("couldnt generate summary")
-  }
-  }) 
+    // Filter out failed summaries and log them
+    const validSummaries: { summary: string; index: number }[] = [];
+    const failedCommits: { commitHash: string; reason: unknown }[] = [];
 
-  const commits = await db.commit.createMany({
-   data: summaries.map((summary,index)=>{
-    console.log('processing commit',index)
+    summaryResponses.forEach((response, index) => {
+      if (response.status === 'fulfilled') {
+        validSummaries.push({
+          summary: response.value,
+          index
+        });
+      } else {
+        failedCommits.push({
+          commitHash: unprocessedCommits[index]!.commitHash,
+          reason: response.reason
+        });
+        console.error(`Failed to summarize commit ${unprocessedCommits[index]!.commitHash}:`, response.reason);
+      }
+    });
+
+    if (validSummaries.length === 0) {
+      throw new Error("Could not generate any commit summaries");
+    }
+
+    // Only process commits with successful summaries
+    const commits = await db.commit.createMany({
+      data: validSummaries.map(({ summary, index }) => ({
+        projectId,
+        commitHash: unprocessedCommits[index]!.commitHash,
+        commitMessage: unprocessedCommits[index]!.commitMessage,
+        commitAuthorAvatar: unprocessedCommits[index]!.commitAuthorAvatar,
+        commitAuthorName: unprocessedCommits[index]!.commitAuthorName,
+        commitDate: unprocessedCommits[index]!.commitDate,
+        summary
+      }))
+    });
+
     return {
-    projectId,
-    commitHash:unprocessedCommits[index]!.commitHash,
-    commitMessage:unprocessedCommits[index]!.commitMessage,
-    commitAuthorAvatar:unprocessedCommits[index]!.commitAuthorAvatar,
-    commitAuthorName:unprocessedCommits[index]!.commitAuthorName,
-    commitDate:unprocessedCommits[index]!.commitDate,
-    summary
+      ...commits,
+      failedCount: failedCommits.length,
+      failedCommits
+    };
+
+  } catch (error) {
+    console.error("Error in pollCommits:", error);
+    throw new Error(`Failed to poll commits: ${error instanceof Error ? error.message : String(error)}`);
   }
-   })
-  })
-
-  return commits
-
-
 };
+// export const pollCommits = async (projectId: string) => {
+//   const { project, githubUrl } = await fetchProjectGithubUrl(projectId);
+
+//   const commitHashes = await getCommitsList(githubUrl)
+ 
+//   const unprocessedCommits = await getUnprocessedCommits(projectId,commitHashes)
+
+//   const summaryResponses = await Promise.allSettled (unprocessedCommits.map(commit=>{
+//     return summariseCommit(commit.commitHash,githubUrl)
+//   }))
+
+//   const summaries = summaryResponses.map((summary)=>{
+//   if(summary.status==='fulfilled'){
+//     console.log(summary.value as string)
+//     return summary.value as string
+//   }else{
+//     console.error(error)
+//     throw new Error("couldnt generate summary")
+//   }
+//   }) 
+
+//   const commits = await db.commit.createMany({
+//    data: summaries.map((summary,index)=>{
+//     console.log('processing commit',index)
+//     return {
+//     projectId,
+//     commitHash:unprocessedCommits[index]!.commitHash,
+//     commitMessage:unprocessedCommits[index]!.commitMessage,
+//     commitAuthorAvatar:unprocessedCommits[index]!.commitAuthorAvatar,
+//     commitAuthorName:unprocessedCommits[index]!.commitAuthorName,
+//     commitDate:unprocessedCommits[index]!.commitDate,
+//     summary
+//   }
+//    })
+//   })
+
+//   return commits
+
+
+// };
 
 const fetchProjectGithubUrl = async (projectId: string) => {
   const project = await db.project.findUnique({
@@ -92,7 +156,6 @@ const fetchProjectGithubUrl = async (projectId: string) => {
   if (!project?.githubUrl) {
     throw new Error("Project has no github url");
   }
-  console.log(project,project.githubUrl)
   return { project, githubUrl: project.githubUrl };
 };
 
@@ -102,9 +165,8 @@ const getUnprocessedCommits = async(projectId:string,commitHashes:Response[])=>{
             projectId:projectId
         }
     })
-console.log(processedCommits)
     const filterCommits = commitHashes.filter((commit)=>!processedCommits.some((processedCommit)=>processedCommit.commitHash===commit.commitHash))
-console.log(filterCommits)
+
     return filterCommits;
 }
 
@@ -114,7 +176,6 @@ const summariseCommit = async(commitHash:string, githubUrl:string)=>{
       Accept:'application/vnd.github.v3.diff'
     }
   })
-  console.log("diff",data)
   return await generateCommitSummary(data)??"no summary generated"
 }
 

@@ -1,6 +1,8 @@
 import { pollCommits } from "@/lib/github";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { z } from "zod";
+import { cleanGithubUrl } from "@/utils/clean-github-url";
+import { indexGithubRepo } from "@/lib/github-loader";
 
 export const ProjectRouter = createTRPCRouter({
   createProject: protectedProcedure
@@ -12,10 +14,14 @@ export const ProjectRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const refinedUrl = cleanGithubUrl(input.githubUrl)
+      if(!refinedUrl){
+        throw new Error("Please enter valid github url format")
+      }
       const project = await ctx.db.project.create({
         data: {
           name: input.name,
-          githubUrl: input.githubUrl,
+          githubUrl: refinedUrl,
           userToProjects: {
             create: {
               userId: ctx.user.userId!,
@@ -23,6 +29,7 @@ export const ProjectRouter = createTRPCRouter({
           },
         },
       });
+      await indexGithubRepo(project.id,refinedUrl,input.githubToken)
       await pollCommits(project.id);
       return project;
     }),
@@ -39,4 +46,17 @@ export const ProjectRouter = createTRPCRouter({
       },
     });
   }),
+
+  getCommits: protectedProcedure.input(
+    z.object({
+      projectId: z.string()
+    })
+  ).query(async ({ ctx,input })=>{
+    pollCommits(input.projectId).then().catch(console.error)
+    return await ctx.db.commit.findMany({
+      where:{
+        projectId:input.projectId
+      }
+    })
+  })
 });

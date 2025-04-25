@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { Document } from "@langchain/core/documents";
 import "dotenv/config";
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -44,21 +45,37 @@ export const generateCommitSummary = async (diff: string) => {
     It is given only as an example of appropriate comments.`,
     `Please summarise the following diff file: \n\n${diff}`,
   ]);
-
+console.log(response.response.text())
   return response.response.text();
 };
 
-// console.log(
-//   await generateCommitSummary(`diff --git a/env.example b/env.example
-// index 5a8b7d77..f661c366 100644
-// --- a/env.example
-// +++ b/env.example
-// @@ -1,6 +1,6 @@
-//  #OPENAI_API_KEY=sk-...
-//  #OLLAMA_BASE_URL=http://host.docker.internal:11434
-// -#NEO4J_URI=neo4j://localhost:7687
-// +#NEO4J_URI=neo4j://database:7687
-//  #NEO4J_USERNAME=neo4j
-//  #NEO4J_PASSWORD=password
-//  LLM=llama2 #or any Ollama model tag, or gpt-4 or gpt-3.5`),
-// );
+export const generateSummary = async (doc:Document)=>{
+  console.log("getting summary for",doc.metadata.source)
+  try {
+    const code = doc.pageContent.slice(0,10000) //limit to 10000 words
+    const response = await model.generateContent([
+      `You are an intelligent senior software engineer who specialises in onboarding junior software engineers onto projects`,
+        `You are onboarding a junior software engineer and explaining to them the purpose of the ${doc.metadata.source} file 
+        Here is the code:
+        ---
+        ${code}
+        ---
+               Give a summary no more than 100 WORDS of the code given above, include all necessary points required to understand the code.` 
+      
+    ])
+    
+return response.response.text()
+  } catch (error) {
+    return ''
+  }
+ 
+}
+
+export const generateSummaryEmbedding = async(summary:string)=>{
+  const embeddingModel =  genAI.getGenerativeModel({
+    model:"text-embedding-004"
+  })
+  const result = await embeddingModel.embedContent(summary)
+  const embedding = result.embedding
+  return embedding.values
+}
