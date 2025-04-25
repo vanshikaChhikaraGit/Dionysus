@@ -5,10 +5,14 @@ import { useUser } from '@clerk/nextjs'
 import { ExternalLink, Github, Link2 } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
+import CommitLog from './commit-log'
+import  AskQuestionCard  from './ask-question-card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 
-type Props = {}
 
-const Page = (props: Props) => {
+const Page = () => {
   const { project } = useProject()
   return (
     <div>
@@ -29,22 +33,37 @@ const Page = (props: Props) => {
         </div>
       </div>
       <div className="h-4 sm:h-0"></div>
-      <div className="flex items-center gap-4 shrink-0" >
+      {/* <div className="flex items-center gap-4 shrink-0" >
         tema memebers 
         invite button 
         archive button
-      </div>
+      </div> */}
     </div>
-
+    {/* grid grid-cols-1 gap-4 sm:grid-cols-5 */}
     <div className="mt-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
-        ask question card
-        meeting card
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 ">
+        <AskQuestionCard></AskQuestionCard>
+        <div >
+        <Card className="relative col-span-3">
+        <CardHeader>
+          <CardTitle>Create a new meeting</CardTitle>
+          <CardDescription>Analyse your meetings powered by dionysus</CardDescription>
+        </CardHeader>
+        <CardContent>
+          
+            <div className="h-4" />
+            <Button type="submit">
+              Set Up
+            </Button>
+        </CardContent>
+      </Card>
+        </div>
+        
       </div>
     </div>
 
     <div className="mt-8">
-     
+     <CommitLog/>
     </div>
   </div>
   
