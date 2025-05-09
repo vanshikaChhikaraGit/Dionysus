@@ -14,8 +14,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import MeetingCard from './meeting-card'
 // import ArchiveButton from './archive-button'
-const InviteButton = dynamic(()=>import('./invite-button'),{ssr:false})
-const ArchiveButton = dynamic(()=>import('./archive-button'),{ssr:false})
+const InviteButton = dynamic(()=> {return import('./invite-button')},{ssr:false})
+const ArchiveButton = dynamic(()=> {return import('./archive-button')},{ssr:false})
 import TeamMembers from './team-members'
 
 const Page = () => {
