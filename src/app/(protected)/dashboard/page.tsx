@@ -10,6 +10,10 @@ import  AskQuestionCard  from './ask-question-card'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import MeetingCard from './meeting-card'
+import ArchiveButton from './archive-button'
+import InviteButton from './invite-button'
+import TeamMembers from './team-members'
 
 
 const Page = () => {
@@ -33,30 +37,18 @@ const Page = () => {
         </div>
       </div>
       <div className="h-4 sm:h-0"></div>
-      {/* <div className="flex items-center gap-4 shrink-0" >
-        tema memebers 
-        invite button 
-        archive button
-      </div> */}
+      <div className="flex items-center gap-4 shrink-0" >
+        <TeamMembers></TeamMembers>
+        <InviteButton></InviteButton> 
+        <ArchiveButton></ArchiveButton>
+      </div>
     </div>
     {/* grid grid-cols-1 gap-4 sm:grid-cols-5 */}
     <div className="mt-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 ">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-5 ">
         <AskQuestionCard></AskQuestionCard>
+        <MeetingCard></MeetingCard>
         <div >
-        <Card className="relative col-span-3">
-        <CardHeader>
-          <CardTitle>Create a new meeting</CardTitle>
-          <CardDescription>Analyse your meetings powered by dionysus</CardDescription>
-        </CardHeader>
-        <CardContent>
-          
-            <div className="h-4" />
-            <Button type="submit">
-              Set Up
-            </Button>
-        </CardContent>
-      </Card>
         </div>
         
       </div>

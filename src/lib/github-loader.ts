@@ -2,7 +2,60 @@ import { GithubRepoLoader } from "@langchain/community/document_loaders/web/gith
 import type { Document } from "@langchain/core/documents";
 import { generateSummary, generateSummaryEmbedding } from "./gemini";
 import { db } from "@/server/db";
+import { Octokit } from "octokit";
 
+//step0: check credits that user will require for the github repo that they are uploading
+
+const getFileCount = async(path:string,octokit:Octokit,githubOwner:string,githubRepo:string,acc:number=0)=>{
+  const { data } = await octokit.rest.repos.getContent({
+    owner:githubOwner,
+    repo:githubRepo,
+    path
+  })
+  //if the current data is a single file
+  if(!Array.isArray(data)&&data.type==='file'){
+    return acc+1;
+  }
+  //if current data an array of file or distributed through nested directories then traverse throught it
+  if(Array.isArray(data)){
+    let fileCount = 0;
+    const directories: string[] = []
+
+    for(const item of data){
+          if(item.type==='dir'){
+            directories.push(item.path)
+          }else{
+            fileCount++
+          }
+    }
+
+    if(directories.length>0){
+      const directoryCounts = await Promise.all(
+        directories.map(dirPath=>getFileCount(dirPath,octokit,githubOwner,githubRepo,0))
+      )
+      fileCount += directoryCounts.reduce((acc,count)=>acc+count,0)
+    }
+    return acc+ fileCount
+  }
+  console.log(acc)
+  return acc
+}
+
+export const checkUserCredits = async (githubUrl:string, githubToken?:string)=>{
+  //find how many files are in repo
+  const octokit = new Octokit({ auth:githubToken })
+  const githubOwner = githubUrl?.split('/')[3]
+  const githubRepo = githubUrl.split('/')[4]
+console.log(githubOwner)
+console.log(githubRepo)
+  if(!githubOwner||!githubRepo){
+    return 0;
+  }
+
+  const fileCount = await getFileCount('',octokit,githubOwner,githubRepo,0)
+  console.log(fileCount)
+  return fileCount
+}
 
 //step1:- load the github repository and its files and their contents
 //step2:- summarise the page contents and generate embeddings using gemini ai
@@ -58,7 +111,7 @@ const generateEmbeddings = async(docs:Document[])=>{
     return Promise.all(docs.map( async doc=>{
         const summary = await generateSummary(doc)
         const embedding = await generateSummaryEmbedding(summary)
-        return {
+        return {    
             summary,
             embedding,
             sourceCode:JSON.parse(JSON.stringify(doc.pageContent)),

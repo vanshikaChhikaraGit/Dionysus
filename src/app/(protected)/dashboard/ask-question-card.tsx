@@ -14,6 +14,9 @@ import useProject from "@/hooks/use-project";
 import { readStreamableValue } from "ai/rsc";
 import MDEditor from '@uiw/react-md-editor';
 import CodeRefrences from "./code-refrences";
+import { api } from "@/trpc/react";
+import { toast } from "sonner";
+import useRefetch from "@/hooks/use-refetch";
 
 
 const AskQuestionCard = () => {
@@ -25,6 +28,18 @@ const AskQuestionCard = () => {
     { fileName: string; sourceCode: string; summary: string }[]
   >([]);
   const [answer, setAnswer] = React.useState("");
+  const saveAnswer = api.project.saveAnswer.useMutation()
+  const refetch = useRefetch()
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open && !saveAnswer.isPending) {
+      // Only reset if not in the middle of saving
+      setQuestion("");
+      setAnswer("");
+      setFileReferences([]);
+    }
+    setOpen(open);
+  };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,8 +59,6 @@ const AskQuestionCard = () => {
       );
       setOpen(true)
       setFileReferences(fileReferences);
-      const response = await askQuestion(question, project.id);
-      console.log("askQuestion response:", response);
 
       let accumulatedAnswer = "";
       for await (const delta of readStreamableValue(output)) {
@@ -54,25 +67,38 @@ const AskQuestionCard = () => {
           setAnswer((prev) => prev + delta);
         }
       }
-
-      console.log("Final answer:", accumulatedAnswer);
     } catch (error) {
       console.error("Error in AskQuestionCard:", error);
     } finally {
       setLoading(false);
-      setQuestion("");
     }
   }
 
   return (
     <>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[80vw] sm:max-h-full overflow-scroll scrollbar-hide">
+      <Dialog open={open} onOpenChange={handleDialogClose}>
+        <DialogContent className="sm:max-w-[80vw] sm:max-h-full overflow-scroll">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Image src="/logo.png" alt="logo" width={40} height={40} />
-              <span> </span>
+          <div className="flex items-center gap-2">
+          <DialogTitle>
+              <Image src="/logo.png" alt="logo" width={40} height={40} /> 
             </DialogTitle>
+            <Button disabled={saveAnswer.isPending} variant={'outline'} className="hover:cursor-pointer" onClick={()=>{
+              saveAnswer.mutate({
+                projectId:project!.id,
+                answer,
+                question,
+                fileReferences
+              },{
+                onSuccess:()=>{
+                  toast.success("Answer saved!")
+                  refetch()
+                },
+                onError:()=>{toast.error("Couldn't save answer")}
+              })
+
+            }}>Save Answer</Button>
+          </div>
           </DialogHeader>
 
           <div data-color-mode="light">
@@ -80,7 +106,7 @@ const AskQuestionCard = () => {
       </div>
       <div className="h-4"></div>
       <CodeRefrences fileReferences={fileReferences}></CodeRefrences>
-      <Button type="button" onClick={()=>setOpen(false)}>Close</Button>
+      <Button type="button" className="hover:cursor-pointer"  onClick={() => handleDialogClose(false)} >Close</Button>
         </DialogContent>
       </Dialog>
       {/* relative col-span-3 */}
@@ -98,7 +124,7 @@ const AskQuestionCard = () => {
               disabled={loading}
             />
             <div className="h-4" />
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" className="hover:cursor-pointer" disabled={loading}>
                Ask Dionysus!
             </Button>
           </form>
