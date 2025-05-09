@@ -11,8 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import MeetingCard from './meeting-card'
-import ArchiveButton from './archive-button'
+// import ArchiveButton from './archive-button'
 const InviteButton = dynamic(()=>import('./invite-button'),{ssr:false})
+const ArchiveButton = dynamic(()=>import('./archive-button'),{ssr:false})
 import TeamMembers from './team-members'
 import dynamic from 'next/dynamic'
 
