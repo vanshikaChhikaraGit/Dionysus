@@ -3,15 +3,11 @@
 import dynamic from 'next/dynamic'
 
 import useProject from '@/hooks/use-project'
-import { useUser } from '@clerk/nextjs'
 import { ExternalLink, Github, Link2 } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 import CommitLog from './commit-log'
 import  AskQuestionCard  from './ask-question-card'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
 import MeetingCard from './meeting-card'
 // import ArchiveButton from './archive-button'
 const InviteButton = dynamic(()=> {return import('./invite-button')},{ssr:false})

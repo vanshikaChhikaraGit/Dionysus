@@ -5,35 +5,53 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import useProject from '@/hooks/use-project'
 import { Copy } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 
-type Props = {}
-
-const InviteButton = (props: Props) => {
+const InviteButton = () => {
     const { projectId } = useProject()
-    const [ open,setOpen ] = useState(false)
-  return (
-    <div>
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Invite Team Members</DialogTitle>
-                </DialogHeader>
-                <p className='text-sm text-gray-500'>
-                    Ask them to copy paste this link
-                </p>
-                <div className='flex items-center justify-center'>
-                <Input className='' readOnly value={`${window.location.origin}/join/${projectId}`}></Input>
-          <Copy size={18} className='ml-1' onClick={()=>{
-            navigator.clipboard.writeText(`${window.location.origin}/join/${projectId}`)
-            toast.success("Copied to clipboard")}}></Copy>
-                </div>
-                  </DialogContent>
-        </Dialog>
-        <Button onClick={()=>setOpen(true)} className='hover:cursor-pointer'>Invite Members</Button>
-    </div>
-  )
+    const [open, setOpen] = useState(false)
+    const [inviteLink, setInviteLink] = useState('')
+
+    useEffect(() => {
+        // This will only run on client side
+        setInviteLink(`${window.location.origin}/join/${projectId}`)
+    }, [projectId])
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(inviteLink)
+            .then(() => toast.success("Copied to clipboard"))
+            .catch(() => toast.error("Failed to copy"))
+    }
+
+    return (
+        <div>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Invite Team Members</DialogTitle>
+                    </DialogHeader>
+                    <p className='text-sm text-gray-500'>
+                        Ask them to copy paste this link
+                    </p>
+                    <div className='flex items-center gap-2'>
+                        <Input readOnly value={inviteLink} />
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={handleCopy}
+                            disabled={!inviteLink}
+                        >
+                            <Copy size={18} />
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            <Button onClick={() => setOpen(true)}>
+                Invite Members
+            </Button>
+        </div>
+    )
 }
 
 export default InviteButton
