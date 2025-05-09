@@ -1,8 +1,12 @@
 'use client'
-
+import dynamic from 'next/dynamic'
 import useProject from '@/hooks/use-project'
 import { api } from '@/trpc/react'
 import React from 'react'
+// const MeetingCard = dynamic(() => import('../dashboard/meeting-card'), {
+//     ssr: false,
+//     loading: () => <div>Loading...</div>
+//   });
 import MeetingCard from '../dashboard/meeting-card'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'

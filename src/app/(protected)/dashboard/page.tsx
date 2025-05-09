@@ -1,5 +1,7 @@
 "use client"
 
+import dynamic from 'next/dynamic'
+
 import useProject from '@/hooks/use-project'
 import { useUser } from '@clerk/nextjs'
 import { ExternalLink, Github, Link2 } from 'lucide-react'
@@ -15,8 +17,6 @@ import MeetingCard from './meeting-card'
 const InviteButton = dynamic(()=>import('./invite-button'),{ssr:false})
 const ArchiveButton = dynamic(()=>import('./archive-button'),{ssr:false})
 import TeamMembers from './team-members'
-import dynamic from 'next/dynamic'
-
 
 const Page = () => {
   const { project } = useProject()
